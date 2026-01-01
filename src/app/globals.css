@@ -1,26 +1,48 @@
 @import "tailwindcss";
 
+@theme {
+  --color-bg-app: #F8FAFC;
+  --color-primary: #2563EB;
+  --color-primary-fg: #FFFFFF;
+  --color-accent: #F59E0B;
+  --color-accent-fg: #000000;
+  --color-text-main: #1E293B;
+  --color-text-sub: #475569;
+}
+
+/* 
+  V4 Note: We can Map CSS Variables to Theme like above, 
+  OR just use standard CSS variables and utility classes.
+*/
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Fallback / Legacy Var Support */
+  --bg-app: #F8FAFC;
+  --primary: #2563EB;
+  --primary-fg: #FFFFFF;
+  --accent: #F59E0B;
+  --accent-fg: #000000;
+  --text-main: #1E293B;
+  --text-sub: #475569;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 18px;
+  line-height: 1.6;
 }
+
+input,
+textarea,
+button {
+  font-family: inherit;
+}
+
+/* 
+  Removed .card and .btn-press classes to avoid @apply issues in V4.
+  Please use utility classes directly in components:
+  .card -> "bg-white rounded-2xl shadow-sm border border-slate-200 p-6"
+  .btn-press -> "active:scale-95 transition-transform duration-100"
+*/
