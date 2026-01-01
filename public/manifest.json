@@ -1,7 +1,7 @@
 {
-    "name": "가계부",
-    "short_name": "가계부",
-    "description": "아버지를 위한 간편한 가계부 앱",
+    "name": "총무나라",
+    "short_name": "총무나라",
+    "description": "아버지를 위한 간편한 총무나라 앱",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#ffffff",

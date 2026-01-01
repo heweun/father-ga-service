@@ -13,14 +13,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "가계부 - 아버지를 위한 간편한 가계부",
-  description: "수입과 지출을 쉽게 관리하는 가계부 앱",
+  title: "총무나라 - 아버지를 위한 간편한 총무나라",
+  description: "수입과 지출을 쉽게 관리하는 총무나라 앱",
   manifest: "/manifest.json",
   themeColor: "#2563eb",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "가계부",
+    title: "총무나라",
   },
   icons: {
     icon: "/favicon.png",
