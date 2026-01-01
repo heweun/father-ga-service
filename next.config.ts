@@ -14,6 +14,7 @@ const withPWA = withPWAInit({
 
 const nextConfig: NextConfig = {
   /* config options here */
+  turbopack: {}, // Fix for Next.js 16 Turbopack/webpack conflict
 };
 
 export default withPWA(nextConfig);
