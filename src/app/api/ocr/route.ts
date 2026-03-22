@@ -1,6 +1,8 @@
 
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { getErrorMessage } from '@/lib/errors';
+import type { NaverOcrField, OcrApiResponse, NaverOcrResponse } from '@/lib/types/ocr';
 
 export async function POST(request: Request) {
     try {
@@ -49,7 +51,7 @@ export async function POST(request: Request) {
             body: JSON.stringify(payload)
         });
 
-        const result = await response.json();
+        const result = await response.json() as NaverOcrResponse;
 
         if (!response.ok) {
             console.error("OCR Error:", result);
@@ -63,19 +65,19 @@ export async function POST(request: Request) {
         let debugText = "";
 
         if (result.images && result.images[0].fields) {
-            const fields = result.images[0].fields;
+            const fields: NaverOcrField[] = result.images[0].fields;
 
             // 1. Construct Full Text for Debugging
-            const allText = fields.map((f: any) => f.inferText);
+            const allText = fields.map((f) => f.inferText);
             debugText = allText.join(' ');
             w_text = allText.slice(0, 3).join(' ') + "...";
 
             // 2. Find Date
-            const dateField = fields.find((f: any) => /\d{4}[-./]\d{2}[-./]\d{2}/.test(f.inferText));
+            const dateField = fields.find((f) => /\d{4}[-./]\d{2}[-./]\d{2}/.test(f.inferText));
             if (dateField) w_date = dateField.inferText;
 
             // 3. Smart Amount Finding
-            const candidates = fields.map((f: any, i: number) => ({
+            const candidates = fields.map((f, i) => ({
                 text: f.inferText,
                 index: i,
                 isNumber: /^[0-9,]+원?$/.test(f.inferText),
@@ -89,7 +91,7 @@ export async function POST(request: Request) {
             const clean = (s: string) => s.replace(/\s+/g, '');
 
             for (const kw of keywords) {
-                const kwIdx = candidates.findIndex((c: any) => clean(c.text).includes(kw));
+                const kwIdx = candidates.findIndex((c) => clean(c.text).includes(kw));
                 if (kwIdx !== -1) {
                     const neighbors = candidates.slice(kwIdx + 1, kwIdx + 7);
 
@@ -108,9 +110,9 @@ export async function POST(request: Request) {
 
             // Strategy B: Fallback
             if (!foundAmount || w_amount === 0) {
-                const numberFields = candidates.filter((c: any) => c.isNumber && c.numberValue > 0);
+                const numberFields = candidates.filter((c) => c.isNumber && c.numberValue > 0);
 
-                const cleanNumbers = numberFields.filter((c: any) => {
+                const cleanNumbers = numberFields.filter((c) => {
                     const raw = c.text.replace(/[^0-9]/g, '');
 
                     // Rule 0: Exclude near TEL/FAX
@@ -149,8 +151,8 @@ export async function POST(request: Request) {
             raw: result
         });
 
-    } catch (e: any) {
+    } catch (e: unknown) {
         console.error(e);
-        return NextResponse.json({ error: e.message }, { status: 500 });
+        return NextResponse.json({ error: getErrorMessage(e) }, { status: 500 });
     }
 }

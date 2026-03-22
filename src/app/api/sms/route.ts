@@ -1,6 +1,8 @@
 
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { getErrorMessage } from '@/lib/errors';
+import { SMS_LONG_TEXT_THRESHOLD } from '@/lib/constants/sms';
 
 export async function POST(request: Request) {
     try {
@@ -33,7 +35,7 @@ export async function POST(request: Request) {
         // For Solapi, we can send messages in bulk or single. 'send-many' supports arrays.
         // If text > 45 chars (korean), it should be LMS. Solapi auto-converts if type is not strictly enforced?
         // Safer to just specify 'LMS' if lengthy.
-        const isLong = message.length > 40;
+        const isLong = message.length > SMS_LONG_TEXT_THRESHOLD;
 
         const messages = receivers.map((phone: string) => ({
             to: phone,
@@ -67,8 +69,8 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ success: true, result });
 
-    } catch (e: any) {
+    } catch (e: unknown) {
         console.error("Internal SMS Error:", e);
-        return NextResponse.json({ error: e.message || 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ error: getErrorMessage(e) || 'Internal Server Error' }, { status: 500 });
     }
 }

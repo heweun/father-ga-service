@@ -7,6 +7,8 @@ import BigButton from '@/components/BigButton';
 import BigInput from '@/components/BigInput';
 import { Camera } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { getErrorMessage } from '@/lib/errors';
+import { EXPENSE_CATEGORIES } from '@/lib/constants/money';
 
 export default function ExpensePage() {
     const [amount, setAmount] = useState('');
@@ -15,8 +17,6 @@ export default function ExpensePage() {
     const [memo, setMemo] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-
-    const categories = ['식사/회식', '교통비', '선물/경조사', '운영비', '기타'];
 
     const handleSubmit = async () => {
         if (!amount || !category) return;
@@ -36,8 +36,8 @@ export default function ExpensePage() {
 
             alert(`저장되었습니다!\n${amount}원 - ${category}`);
             window.location.href = '/money';
-        } catch (e: any) {
-            alert(`저장 실패: ${e.message}`);
+        } catch (e: unknown) {
+            alert(`저장 실패: ${getErrorMessage(e)}`);
         } finally {
             setIsSaving(false);
         }
@@ -109,7 +109,7 @@ export default function ExpensePage() {
             <div className="space-y-2">
                 <label className="text-xl font-bold block">무엇을 했나요?</label>
                 <div className="grid grid-cols-2 gap-2">
-                    {categories.map(c => (
+                    {EXPENSE_CATEGORIES.map(c => (
                         <button
                             key={c}
                             onClick={() => setCategory(c)}

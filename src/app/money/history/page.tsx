@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react';
 import MobileLayout from '@/components/MobileLayout';
 import { createClient } from '@/lib/supabase/client';
-
-type FilterType = 'all' | 'thisMonth' | 'lastMonth' | 'threeMonths';
+import type { Transaction } from '@/lib/types/transaction';
+import type { FilterType } from '@/lib/constants/money';
+import { HISTORY_FILTERS } from '@/lib/constants/money';
+import { formatWon } from '@/lib/format/currency';
 
 export default function HistoryPage() {
     const [filter, setFilter] = useState<FilterType>('threeMonths');
-    const [transactions, setTransactions] = useState<any[]>([]);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -45,19 +47,12 @@ export default function HistoryPage() {
         setLoading(false);
     };
 
-    const filterButtons: { key: FilterType; label: string }[] = [
-        { key: 'all', label: '전체보기' },
-        { key: 'thisMonth', label: '이번 달' },
-        { key: 'lastMonth', label: '지난 달' },
-        { key: 'threeMonths', label: '3개월' }
-    ];
-
     return (
         <MobileLayout title="장부 (내역)" showBack backUrl="/money">
 
             {/* Filter Buttons */}
             <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-                {filterButtons.map(btn => (
+                {HISTORY_FILTERS.map(btn => (
                     <button
                         key={btn.key}
                         onClick={() => setFilter(btn.key)}
@@ -78,7 +73,7 @@ export default function HistoryPage() {
                 <div className="text-center py-8 text-gray-400">내역이 없습니다.</div>
             ) : (
                 <ul className="space-y-4">
-                    {transactions.map((t: any) => (
+                    {transactions.map((t) => (
                         <li
                             key={t.id}
                             className={`p-4 rounded-xl border-2 flex justify-between items-start shadow-sm ${t.type === 'income'
@@ -104,7 +99,7 @@ export default function HistoryPage() {
                                 )}
                             </div>
                             <div className={`text-xl font-bold ml-4 ${t.type === 'income' ? 'text-blue-700' : 'text-red-700'}`}>
-                                {t.type === 'income' ? '+' : '-'}{new Intl.NumberFormat('ko-KR').format(t.amount)}
+                                {t.type === 'income' ? '+' : '-'}{formatWon(t.amount).replace('원', '')}
                             </div>
                         </li>
                     ))}

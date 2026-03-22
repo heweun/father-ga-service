@@ -1,0 +1,1 @@
+export const SMS_LONG_TEXT_THRESHOLD = 40;

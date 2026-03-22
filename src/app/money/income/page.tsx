@@ -6,6 +6,7 @@ import MobileLayout from '@/components/MobileLayout';
 import BigButton from '@/components/BigButton';
 import BigInput from '@/components/BigInput';
 import { createClient } from '@/lib/supabase/client';
+import { getErrorMessage } from '@/lib/errors';
 
 export default function IncomePage() {
     const [amount, setAmount] = useState('');
@@ -31,8 +32,8 @@ export default function IncomePage() {
 
             alert(`저장되었습니다!\n${parseInt(amount).toLocaleString('ko-KR')}원 - ${source}`);
             window.location.href = '/money';
-        } catch (e: any) {
-            alert(`저장 실패: ${e.message}`);
+        } catch (e: unknown) {
+            alert(`저장 실패: ${getErrorMessage(e)}`);
         } finally {
             setIsSaving(false);
         }

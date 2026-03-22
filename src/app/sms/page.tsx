@@ -1,18 +1,36 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import MobileLayout from '@/components/MobileLayout';
 import BigButton from '@/components/BigButton';
 import BigInput from '@/components/BigInput';
 import { extractContacts, ExtractedContact } from '@/lib/contactUtils';
 import { User, Copy, Trash2, Send } from 'lucide-react';
+import { getErrorMessage } from '@/lib/errors';
+import { createClient } from '@/lib/supabase/client';
 
 export default function SmsPage() {
     const [step, setStep] = useState<'input' | 'confirm'>('input');
-    const [message, setMessage] = useState('');
+    const PREFIX = '[곤지암중 25기 동창회 소식]\n';
+    const [message, setMessage] = useState(PREFIX);
     const [contacts, setContacts] = useState<ExtractedContact[]>([]);
     const [rawText, setRawText] = useState('');
+
+    useEffect(() => {
+        const loadDefaultContacts = async () => {
+            const supabase = createClient();
+            const { data, error } = await supabase
+                .from('contacts')
+                .select('name, phone')
+                .eq('group_name', '곤25');
+            if (error) { console.error('[contacts] error:', error); return; }
+            if (data && data.length > 0) {
+                setContacts(data.map(c => ({ name: c.name, phone: c.phone, originalText: '' })));
+            }
+        };
+        loadDefaultContacts();
+    }, []);
 
     // 1. Contact Picker (Android)
     const handleContactPicker = async () => {
@@ -33,7 +51,7 @@ export default function SmsPage() {
             }
         } catch (e) {
             console.error(e);
-            // Ignore user cancellation
+            // Ignore user cancellation (e.g., user clicked cancel in picker)
         }
     };
 
@@ -76,9 +94,9 @@ export default function SmsPage() {
             alert(`✅ 발송 성공!\n(총 ${result.result?.count || contacts.length}건 접수됨)`);
             window.location.href = '/';
 
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error("SMS Send Error:", e);
-            alert(`❌ 발송 실패\n${e.message}\n(잠시 후 다시 시도해보세요)`);
+            alert(`❌ 발송 실패\n${getErrorMessage(e)}\n(잠시 후 다시 시도해보세요)`);
         } finally {
             setIsSending(false);
         }
@@ -96,7 +114,10 @@ export default function SmsPage() {
                             className="w-full text-xl p-4 border-2 border-black rounded-xl h-40 focus:ring-4 focus:ring-yellow-400"
                             placeholder="여기에 보낼 내용을 적거나 붙여넣으세요"
                             value={message}
-                            onChange={e => setMessage(e.target.value)}
+                            onChange={e => {
+                                if (!e.target.value.startsWith(PREFIX)) return;
+                                setMessage(e.target.value);
+                            }}
                         />
                     </section>
 

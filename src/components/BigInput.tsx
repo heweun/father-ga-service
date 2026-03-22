@@ -1,11 +1,6 @@
 
-import { InputHTMLAttributes } from 'react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs));
-}
+import { InputHTMLAttributes, useId } from 'react';
+import { cn } from '@/lib/cn';
 
 interface BigInputProps extends InputHTMLAttributes<HTMLInputElement> {
     label?: string;
@@ -19,7 +14,8 @@ export default function BigInput({
     id,
     ...props
 }: BigInputProps) {
-    const inputId = id || crypto.randomUUID();
+    const generatedId = useId();
+    const inputId = id || generatedId;
 
     return (
         <div className="space-y-2 w-full">

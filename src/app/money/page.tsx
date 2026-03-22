@@ -4,6 +4,7 @@ import MobileLayout from '@/components/MobileLayout';
 import BigButton from '@/components/BigButton';
 import { Plus, Minus, FileText, Share2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
+import { formatWon } from '@/lib/format/currency';
 
 export default async function MoneyPage() {
     const supabase = await createClient();
@@ -24,7 +25,7 @@ export default async function MoneyPage() {
             <section className="bg-black text-yellow-400 p-8 rounded-3xl text-center space-y-2 shadow-lg">
                 <h2 className="text-xl opacity-80">현재 남은 돈</h2>
                 <p className="text-5xl font-black">
-                    {new Intl.NumberFormat('ko-KR').format(balance)}원
+                    {formatWon(balance)}
                 </p>
             </section>
 
