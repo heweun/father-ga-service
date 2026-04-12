@@ -33,8 +33,9 @@ export async function GET(request: Request) {
 
     const receivers: string[] = Array.isArray(data.receivers) ? data.receivers : [];
     console.log(`[MacroDroid Receivers] Returning ${receivers.length} receivers for ${id}`);
-    return new Response(JSON.stringify(receivers), {
+    // Return newline-separated phone numbers for MacroDroid For Each (줄바꿈 type)
+    return new Response(receivers.join('\n'), {
         status: 200,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain' },
     });
 }
