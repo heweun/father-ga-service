@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import MobileLayout from '@/components/MobileLayout';
 import { createClient } from '@/lib/supabase/client';
 import type { Transaction } from '@/lib/types/transaction';
@@ -13,11 +13,7 @@ export default function HistoryPage() {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetchTransactions();
-    }, [filter]);
-
-    const fetchTransactions = async () => {
+    const fetchTransactions = useCallback(async () => {
         setLoading(true);
         const supabase = createClient();
 
@@ -45,7 +41,12 @@ export default function HistoryPage() {
         const { data } = await query;
         setTransactions(data || []);
         setLoading(false);
-    };
+    }, [filter]);
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        fetchTransactions();
+    }, [fetchTransactions]);
 
     return (
         <MobileLayout title="장부 (내역)" showBack backUrl="/money">

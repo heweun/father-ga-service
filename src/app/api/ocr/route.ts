@@ -95,8 +95,8 @@ export async function POST(request: Request) {
                 if (kwIdx !== -1) {
                     const neighbors = candidates.slice(kwIdx + 1, kwIdx + 7);
 
-                    const bestNeighbor = neighbors.find((c: any) => c.isNumber && c.numberValue > 0 && (c.text.includes(',') || c.text.includes('원')));
-                    const anyNeighbor = neighbors.find((c: any) => c.isNumber && c.numberValue > 0);
+                    const bestNeighbor = neighbors.find((c) => c.isNumber && c.numberValue > 0 && (c.text.includes(',') || c.text.includes('원')));
+                    const anyNeighbor = neighbors.find((c) => c.isNumber && c.numberValue > 0);
 
                     const amountCand = bestNeighbor || anyNeighbor;
 
@@ -137,7 +137,7 @@ export async function POST(request: Request) {
                 });
 
                 if (cleanNumbers.length > 0) {
-                    const sorted = cleanNumbers.sort((a: any, b: any) => b.numberValue - a.numberValue);
+                    const sorted = cleanNumbers.sort((a, b) => b.numberValue - a.numberValue);
                     w_amount = sorted[0].numberValue;
                 }
             }

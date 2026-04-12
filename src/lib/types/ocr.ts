@@ -7,7 +7,7 @@ export interface OcrApiResponse {
     date: string;
     storeName: string;
     debugText?: string;
-    raw?: any;
+    raw?: unknown;
 }
 
 export interface NaverOcrResponse {

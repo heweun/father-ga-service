@@ -1,76 +1,65 @@
+/**
+ * SMS Primary Route — Supabase Queue Insert
+ *
+ * Dispatch flow:
+ *   1. PRIMARY: Writes pending record to Supabase sms_requests queue
+ *      → MacroDroid (Galaxy phone) polls and sends for free
+ *   2. FALLBACK: If MacroDroid has not processed within 5 minutes,
+ *      → /api/sms/fallback is called by the PWA client to send via Solapi/CoolSMS (paid)
+ *
+ * Solapi/CoolSMS fallback code lives in: /api/sms/fallback/route.ts
+ * Retained as fallback to ensure reliability when Galaxy phone is unavailable.
+ */
 
 import { NextResponse } from 'next/server';
-import crypto from 'crypto';
+import { createClient } from '@/lib/supabase/server';
 import { getErrorMessage } from '@/lib/errors';
-import { SMS_LONG_TEXT_THRESHOLD } from '@/lib/constants/sms';
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
         const { receivers, message } = body;
 
-        if (!receivers || !message) {
+        if (!receivers || !Array.isArray(receivers) || receivers.length === 0 || !message) {
             return NextResponse.json({ error: 'Missing requirements' }, { status: 400 });
         }
 
-        const {
-            COOLSMS_API_KEY: API_KEY,
-            COOLSMS_API_SECRET: API_SECRET,
-            SENDER_PHONE
-        } = process.env;
+        const supabase = await createClient();
 
-        if (!API_KEY || !API_SECRET) {
-            console.warn("CoolSMS Keys missing.");
-            return NextResponse.json({ success: true, mock: true, count: receivers.length });
+        // Insert pending SMS request into queue
+        // MacroDroid polls this table and processes pending records for free
+        const { data, error } = await supabase
+            .from('sms_requests')
+            .insert({
+                receivers,
+                message,
+                status: 'pending',
+                total_count: receivers.length,
+            })
+            .select('id')
+            .single();
+
+        if (error || !data) {
+            console.error('[SMS Queue] Supabase insert error:', error);
+            return NextResponse.json(
+                { success: false, error: error?.message || 'Failed to queue SMS request' },
+                { status: 500 }
+            );
         }
 
-        // Solapi uses HMAC-SHA256 Auth
-        const date = new Date().toISOString();
-        const salt = crypto.randomBytes(16).toString('hex');
-        const signature = crypto.createHmac('sha256', API_SECRET)
-            .update(date + salt)
-            .digest('hex');
+        console.log(`[SMS Queue] Queued request ${data.id} for ${receivers.length} receivers`);
 
-        // Construct Message Group
-        // For Solapi, we can send messages in bulk or single. 'send-many' supports arrays.
-        // If text > 45 chars (korean), it should be LMS. Solapi auto-converts if type is not strictly enforced?
-        // Safer to just specify 'LMS' if lengthy.
-        const isLong = message.length > SMS_LONG_TEXT_THRESHOLD;
-
-        const messages = receivers.map((phone: string) => ({
-            to: phone,
-            from: SENDER_PHONE || '01000000000',
-            text: message,
-            type: isLong ? 'LMS' : 'SMS'
-        }));
-
-        // Send Request
-        const response = await fetch('https://api.coolsms.co.kr/messages/v4/send-many', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `HMAC-SHA256 apiKey=${API_KEY}, date=${date}, salt=${salt}, signature=${signature}`
-            },
-            body: JSON.stringify({ messages })
+        return NextResponse.json({
+            success: true,
+            request_id: data.id,
+            count: receivers.length,
         });
 
-        const result = await response.json();
-
-        // Check Solapi Error Structure
-        // Success looks like: { groupInfo: {...} } or { logId: ... }
-        // Error looks like: { errorCode: "...", errorMessage: "..." }
-        if (!response.ok || result.errorCode) {
-            console.error("CoolSMS Error Response:", result);
-            return NextResponse.json({
-                success: false,
-                error: result.errorMessage || `CoolSMS Error: ${result.errorCode}`
-            }, { status: 500 });
-        }
-
-        return NextResponse.json({ success: true, result });
-
     } catch (e: unknown) {
-        console.error("Internal SMS Error:", e);
-        return NextResponse.json({ error: getErrorMessage(e) || 'Internal Server Error' }, { status: 500 });
+        console.error('[SMS Queue] Internal error:', e);
+        return NextResponse.json(
+            { error: getErrorMessage(e) || 'Internal Server Error' },
+            { status: 500 }
+        );
     }
 }
