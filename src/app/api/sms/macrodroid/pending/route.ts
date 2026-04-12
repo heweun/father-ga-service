@@ -70,7 +70,7 @@ export async function GET(request: Request) {
 
     // ── No pending request ─────────────────────────────────────────────────
     if (!data) {
-        return new Response('', { status: 200, headers: { 'Content-Type': 'text/plain' } });
+        return new Response('NONE', { status: 200, headers: { 'Content-Type': 'text/plain' } });
     }
 
     // ── Atomic claim: set status to 'processing' with optimistic lock ──────
@@ -98,7 +98,7 @@ export async function GET(request: Request) {
     // Race lost: another process already claimed the row → no work for us
     if (!claimedRows || claimedRows.length === 0) {
         console.log(`[MacroDroid Poll] Race lost on ${data.id} — returning no-work`);
-        return new Response('', { status: 200, headers: { 'Content-Type': 'text/plain' } });
+        return new Response('NONE', { status: 200, headers: { 'Content-Type': 'text/plain' } });
     }
 
     // ── Claimed successfully — return UUID as plain text for MacroDroid ────
