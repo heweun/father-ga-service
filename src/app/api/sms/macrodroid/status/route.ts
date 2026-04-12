@@ -112,11 +112,7 @@ export async function GET(request: Request) {
     if (isSafeToSend) {
         // Record is still in 'processing' state — MacroDroid owns it and should proceed
         console.log(`[MacroDroid Status] ${id} is '${currentStatus}' — ok to send`);
-        return NextResponse.json({
-            ok_to_send: true,
-            id,
-            status: currentStatus,
-        });
+        return new Response('true', { status: 200, headers: { 'Content-Type': 'text/plain' } });
     }
 
     // ── Record is no longer in 'processing' — skip dispatch to prevent duplicates ──
@@ -136,12 +132,7 @@ export async function GET(request: Request) {
         `[MacroDroid Status] Skipping dispatch for ${id}: status='${currentStatus}' (${reason})`
     );
 
-    return NextResponse.json({
-        ok_to_send: false,
-        id,
-        status: currentStatus,
-        reason,
-    });
+    return new Response('false', { status: 200, headers: { 'Content-Type': 'text/plain' } });
 }
 
 /** Returns a human-readable reason for skipping dispatch */
