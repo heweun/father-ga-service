@@ -33,9 +33,12 @@ export async function GET(request: Request) {
 
     const receivers: string[] = Array.isArray(data.receivers) ? data.receivers : [];
     console.log(`[MacroDroid Receivers] Returning ${receivers.length} receivers for ${id}`);
-    // Return newline-separated phone numbers for MacroDroid For Each (줄바꿈 type)
-    return new Response(receivers.join('\n'), {
+    // Return as JSON object with phone numbers as keys.
+    // MacroDroid For Each (dictionary형) iterates over KEYS, not values.
+    // So {"01012345678": 1, "01098765432": 1} → current_receiver = phone number ✅
+    const receiverObj = Object.fromEntries(receivers.map((r) => [r, 1]));
+    return new Response(JSON.stringify(receiverObj), {
         status: 200,
-        headers: { 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'application/json' },
     });
 }
