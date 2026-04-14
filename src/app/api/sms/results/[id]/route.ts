@@ -167,7 +167,6 @@ export async function GET(
         failed_count: hasPerNumberRows ? failedCount : null,
         pending_count: hasPerNumberRows ? pendingCount : null,
         error_message: batch.error_message ?? null,
-        fallback_note: batch.fallback_note ?? null,
         created_at: batch.created_at,
         sent_at: batch.sent_at ?? null,
         completed_at: batch.completed_at ?? null,
