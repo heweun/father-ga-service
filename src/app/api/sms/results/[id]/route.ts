@@ -121,7 +121,6 @@ export async function GET(
         | 'total_count'
         | 'success_count'
         | 'error_message'
-        | 'fallback_note'
         | 'created_at'
         | 'sent_at'
         | 'completed_at'
