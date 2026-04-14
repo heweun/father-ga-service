@@ -27,8 +27,9 @@ export async function GET(request: Request) {
     }
 
     const id = searchParams.get('id');
-    if (!id) {
-        return new Response('Missing id', { status: 400 });
+    if (!id || id === 'NONE') {
+        // 'NONE' means the pending poll returned no job — treat as done
+        return new Response('DONE', { status: 200, headers: { 'Content-Type': 'text/plain' } });
     }
 
     const supabase = await createClient();
@@ -60,11 +61,18 @@ export async function GET(request: Request) {
 
     const phone = receivers[idx];
 
-    // Increment index for next call
-    await supabase
+    // Increment index for next call — must succeed before returning the number.
+    // If this fails, return ERROR so MacroDroid can abort rather than sending
+    // a duplicate on the next call (same idx would be returned again).
+    const { error: updateError } = await supabase
         .from('sms_requests')
         .update({ success_count: idx + 1, updated_at: new Date().toISOString() })
         .eq('id', id);
+
+    if (updateError) {
+        console.error(`[NextReceiver] Failed to increment success_count for ${id}:`, updateError);
+        return new Response('ERROR', { status: 200, headers: { 'Content-Type': 'text/plain' } });
+    }
 
     console.log(`[NextReceiver] ${id} → ${phone} (${idx + 1}/${receivers.length})`);
     return new Response(phone, { status: 200, headers: { 'Content-Type': 'text/plain' } });

@@ -45,8 +45,8 @@
  * finds no rows and returns 200 with already_done: true — safe no-op.
  *
  * ── PWA completion detection ───────────────────────────────────────────────────
- * The PWA polls sms_requests and resolves success on ['sent_via_macrodroid',
- * 'sent_via_solapi', 'sent']. Writing 'sent_via_macrodroid' here triggers that.
+ * The PWA polls sms_requests and resolves success on ['sent_via_macrodroid'].
+ * Writing 'sent_via_macrodroid' here triggers that.
  * Writing 'failed' triggers the failure screen.
  */
 
@@ -105,19 +105,23 @@ export async function PATCH(request: Request) {
     const finalStatus: 'sent_via_macrodroid' | 'failed' =
         status === 'failed' ? 'failed' : 'sent_via_macrodroid';
 
-    // Normalise success_count: MacroDroid may send it as a string variable
-    const successCountNum =
-        typeof success_count === 'number'
-            ? success_count
-            : typeof success_count === 'string' && success_count !== ''
-                ? parseInt(success_count, 10)
-                : null;
+    // Normalise success_count: MacroDroid may send it as a string variable.
+    // Returns null if not provided or unparseable — callers must guard against null
+    // to avoid overwriting an existing DB value with null.
+    const successCountNum: number | null = (() => {
+        if (typeof success_count === 'number' && isFinite(success_count)) return success_count;
+        if (typeof success_count === 'string' && success_count !== '') {
+            const parsed = parseInt(success_count, 10);
+            return isFinite(parsed) ? parsed : null;
+        }
+        return null;
+    })();
 
     const supabase = await createClient();
 
     // ── Update row: only if still in 'processing' state ───────────────────
-    // This prevents a stale MacroDroid completion report from overwriting
-    // a Solapi fallback that already completed (e.g. race condition).
+    // Idempotency guard: prevents duplicate /complete calls from overwriting
+    // an already-completed record.
     const now = new Date().toISOString();
 
     // Build the update payload based on success vs. failure path.
@@ -128,7 +132,9 @@ export async function PATCH(request: Request) {
             ? {
                   status: finalStatus,
                   dispatch_method: 'macrodroid' as const,
-                  success_count: successCountNum,
+                  // Only write success_count if MacroDroid reported it.
+                  // If null, preserve the existing DB value (which tracks the next-receiver index).
+                  ...(successCountNum !== null && { success_count: successCountNum }),
                   sent_at: now,
                   completed_at: now,
                   updated_at: now,

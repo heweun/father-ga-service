@@ -13,19 +13,12 @@ import { useSmsStatus } from '@/lib/sms/useSmsStatus';
 import { isSmsSuccess, isSmsTerminal } from '@/lib/sms/queries';
 
 /**
- * Sub-AC 10a — 5-minute timeout monitoring constants:
- *
- * The PWA starts a precise `setTimeout` immediately after queuing a Supabase
- * sms_requests record. If the status has not transitioned to a terminal success
- * state within FALLBACK_TIMEOUT_MS, the Solapi fallback API is triggered.
- * A second hard-fail timer fires at FALLBACK_TIMEOUT_MS + HARD_TIMEOUT_EXTRA_MS
- * if even the fallback path has not resolved by then.
- *
- * These timers are independent of the 10-second Supabase poll cycle so they
- * fire at the exact millisecond boundary rather than "next poll after 5 min".
+ * Hard timeout: if MacroDroid has not completed within this time,
+ * the UI shows a failure screen so the father isn't stuck waiting forever.
+ * MacroDroid polling interval is 5 minutes; actual send takes ~77s for 187 people.
+ * 10 minutes gives ample buffer (5min poll wait + 2min send + 3min margin).
  */
-const FALLBACK_TIMEOUT_MS = 5 * 60 * 1000;   // 5 minutes — trigger Solapi fallback
-const HARD_TIMEOUT_EXTRA_MS = 2 * 60 * 1000; // +2 minutes — hard fail (total: 7 min)
+const HARD_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes — hard fail
 
 type Step = 'input' | 'confirm' | 'processing' | 'done';
 
@@ -50,22 +43,14 @@ export default function SmsPage() {
     // 10-second polling hook — active only when activeRequestId is set
     const smsStatus = useSmsStatus(activeRequestId);
 
-    // ── Sub-AC 10a: 5-minute timeout monitoring ───────────────────────────────
-    // Mirror activeRequestId and isSending into refs so the setTimeout callbacks
-    // always read the latest values without stale-closure issues (the callbacks
-    // are created once and cannot be recreated on every render).
+    // Mirror activeRequestId and isSending into refs so the setTimeout callback
+    // always reads the latest values without stale-closure issues.
     const activeRequestIdRef = useRef<string | null>(null);
     activeRequestIdRef.current = activeRequestId;
     const isSendingRef = useRef(false);
     isSendingRef.current = isSending;
 
-    // Guard: ensures Solapi fallback is triggered at most once per dispatch
-    const fallbackTriggeredRef = useRef(false);
-
-    // Handles for the two wall-clock timeout timers.
-    // Cleared when the status-watcher detects a terminal state so they never
-    // fire after the dispatch has already resolved.
-    const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Handle for the hard-fail timer — cleared when dispatch resolves normally.
     const hardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Track elapsed time while processing so father can see progress
@@ -89,103 +74,40 @@ export default function SmsPage() {
     }, [step]);
 
     /**
-     * Sub-AC 10a: 5-minute timeout monitoring effect
-     *
-     * Starts two wall-clock timers the moment a request is queued in Supabase:
-     *
-     *   • fallbackTimer  (FALLBACK_TIMEOUT_MS = 5 min):
-     *       Triggers the Solapi fallback API exactly 5 minutes after `activeRequestId`
-     *       is set, regardless of the 10-second poll cycle. Uses `activeRequestIdRef`
-     *       to read the latest request ID without stale-closure issues.
-     *
-     *   • hardTimer (FALLBACK_TIMEOUT_MS + HARD_TIMEOUT_EXTRA_MS = 7 min):
-     *       If even the Solapi fallback hasn't resolved within an additional 2 minutes,
-     *       the UI transitions to the failure screen with a simple timeout message.
-     *
-     * Both timers are cancelled (clearTimeout) as soon as the status-watcher effect
-     * below detects a terminal state, so they never fire after a successful dispatch.
-     * The cleanup function also cancels them on component unmount.
+     * Hard-fail timer: if MacroDroid has not completed within HARD_TIMEOUT_MS,
+     * force the UI to the failure screen so the father isn't stuck waiting forever.
+     * Cancelled as soon as the status-watcher detects a terminal state.
      */
     useEffect(() => {
-        // Clear any timers left over from a previous dispatch attempt
-        if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
         if (hardTimerRef.current) clearTimeout(hardTimerRef.current);
-        fallbackTimerRef.current = null;
         hardTimerRef.current = null;
 
-        if (!activeRequestId) return; // No active dispatch — nothing to time out
+        if (!activeRequestId) return;
 
-        console.log(`[SMS Timeout] Started 5-min fallback timer for request ${activeRequestId}`);
-
-        // ── Timer 1: 5-minute MacroDroid timeout → trigger Solapi fallback ────
-        fallbackTimerRef.current = setTimeout(() => {
-            const reqId = activeRequestIdRef.current;
-            if (!reqId || !isSendingRef.current || fallbackTriggeredRef.current) {
-                // Dispatch already resolved (terminal state reached) — do nothing
-                return;
-            }
-
-            fallbackTriggeredRef.current = true;
-            console.warn(
-                `[SMS Timeout] MacroDroid did not complete within ${FALLBACK_TIMEOUT_MS / 1000}s`,
-                `— triggering Solapi fallback for request ${reqId}`,
-            );
-
-            fetch('/api/sms/fallback', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ request_id: reqId }),
-            })
-                .then(r => r.json())
-                .then(result => {
-                    if (!result.success) {
-                        console.error('[SMS Fallback] Solapi fallback returned failure:', result.error);
-                    } else {
-                        console.log('[SMS Fallback] Solapi fallback accepted:', result);
-                    }
-                    // The status-watcher effect below will detect the terminal state
-                    // (sent_via_solapi | failed) on the next poll tick and resolve the UI.
-                })
-                .catch(e => {
-                    console.error('[SMS Fallback] Network error calling /api/sms/fallback:', getErrorMessage(e));
-                });
-        }, FALLBACK_TIMEOUT_MS);
-
-        // ── Timer 2: 7-minute hard fail → force UI to failure screen ──────────
         hardTimerRef.current = setTimeout(() => {
             const reqId = activeRequestIdRef.current;
-            if (!reqId || !isSendingRef.current) {
-                // Dispatch already resolved — do nothing
-                return;
-            }
+            if (!reqId || !isSendingRef.current) return; // already resolved
 
-            console.error(
-                `[SMS Timeout] Hard timeout at ${(FALLBACK_TIMEOUT_MS + HARD_TIMEOUT_EXTRA_MS) / 1000}s`,
-                `— request ${reqId} never reached a terminal state`,
-            );
+            console.error(`[SMS Timeout] Hard timeout at ${HARD_TIMEOUT_MS / 1000}s — request ${reqId} never completed`);
             setSendResult({ success: false, detail: '시간 초과 — 잠시 후 다시 시도해주세요.' });
             setIsSending(false);
             setStep('done');
             setActiveRequestId(null);
-        }, FALLBACK_TIMEOUT_MS + HARD_TIMEOUT_EXTRA_MS);
+        }, HARD_TIMEOUT_MS);
 
         return () => {
-            if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
             if (hardTimerRef.current) clearTimeout(hardTimerRef.current);
         };
-    }, [activeRequestId]); // Re-run only when a new request is queued or cleared
+    }, [activeRequestId]);
 
     /**
-     * Status-watcher effect — reacts to every poll result emitted by
-     * useSmsStatus (every 10 seconds) and drives the dispatch lifecycle:
+     * Status-watcher effect — reacts to every poll result from useSmsStatus
+     * (every 10 seconds) and drives the dispatch lifecycle:
      *
-     *  • Terminal success (sent_via_macrodroid | sent_via_solapi) → success screen
+     *  • Terminal success (sent_via_macrodroid) → success screen
      *  • Terminal failure (failed) → error screen
      *
-     * Time-based fallback and hard-timeout are handled exclusively by the
-     * Sub-AC 10a timeout effect above (setTimeout-based, not poll-dependent).
-     * When a terminal state is detected here, the timeout timers are cancelled
-     * so they cannot fire after the dispatch has already resolved.
+     * Cancels the hard-fail timer as soon as a terminal state is detected.
      */
     useEffect(() => {
         if (!activeRequestId || !isSending) return;
@@ -194,10 +116,8 @@ export default function SmsPage() {
 
         if (!status || !isSmsTerminal(status)) return; // Not yet resolved — wait for next poll
 
-        // ── Cancel wall-clock timers — dispatch resolved before any timeout ───
-        if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+        // Cancel hard-fail timer — dispatch resolved before timeout
         if (hardTimerRef.current) clearTimeout(hardTimerRef.current);
-        fallbackTimerRef.current = null;
         hardTimerRef.current = null;
 
         // ── Show result to father ─────────────────────────────────────────────
@@ -277,11 +197,6 @@ export default function SmsPage() {
         setIsSending(true);
         setStep('processing');
 
-        // Reset fallback guard for this dispatch attempt.
-        // The 5-minute timeout timer starts automatically when setActiveRequestId()
-        // is called below (driven by the Sub-AC 10a timeout useEffect).
-        fallbackTriggeredRef.current = false;
-
         try {
             // Queue SMS request in Supabase (MacroDroid will pick it up)
             const receivers = contacts.map(c => c.phone);
@@ -301,7 +216,7 @@ export default function SmsPage() {
             console.log(`[SMS] Queued request ${request_id} for ${contacts.length} receivers`);
 
             // Activate the useSmsStatus hook — it will poll every 10 seconds.
-            // The status-watcher useEffect above will handle completion + fallback.
+            // The status-watcher useEffect above will handle completion.
             setActiveRequestId(request_id);
 
         } catch (e: unknown) {
@@ -323,32 +238,17 @@ export default function SmsPage() {
     };
 
     // ── Processing screen display state (driven by useSmsStatus hook) ─────────
-    // These are derived from the reactive DB status so the UI updates on every
-    // poll tick, not just based on elapsed wall-clock time.
-    const dbStatus = smsStatus.status;
-    const processingIsActive = dbStatus === 'processing';
-    const processingIsSwitching = dbStatus === 'fallback_in_progress';
+    const processingIsActive = smsStatus.status === 'processing';
 
     /**
-     * Spinner border color reflects current dispatch phase:
-     *   yellow  → waiting / pending (default)
-     *   green   → MacroDroid has picked up and is sending
-     *   orange  → Solapi fallback path is running
+     * Spinner border color:
+     *   yellow → waiting / pending
+     *   green  → MacroDroid has picked up and is sending
      */
-    const spinnerColorClass = processingIsSwitching
-        ? 'border-orange-400'
-        : processingIsActive
-        ? 'border-green-400'
-        : 'border-yellow-400';
+    const spinnerColorClass = processingIsActive ? 'border-green-400' : 'border-yellow-400';
 
-    /**
-     * Banner shown below the spinner — null means no banner (early stage).
-     * Transitions reactively on every poll cycle as DB status changes.
-     */
     const processingStatusBanner: { bg: string; text: string; msg: string } | null =
-        processingIsSwitching
-            ? { bg: 'bg-orange-50', text: 'text-orange-700', msg: '🔄 자동으로 다른 방법으로 전환 중...' }
-            : processingIsActive
+        processingIsActive
             ? { bg: 'bg-green-50', text: 'text-green-700', msg: '📱 갤럭시 폰에서 발송 중입니다' }
             : elapsedSeconds >= 30
             ? { bg: 'bg-gray-100', text: 'text-gray-500', msg: '⏳ 갤럭시 폰으로 연결 중입니다...' }

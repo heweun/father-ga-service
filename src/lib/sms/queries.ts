@@ -4,7 +4,7 @@
  * Provides typed helpers for reading sms_requests rows from Supabase.
  * Used by:
  *   - sms/page.tsx poll loop (browser client) to check dispatch progress
- *   - API routes (server client) to inspect job state before fallback
+ *   - API routes (server client) to inspect job state
  *
  * All functions are client-agnostic: pass any Supabase client instance
  * (browser or server) and receive a typed result.
@@ -35,10 +35,10 @@ export type SmsStatusResult = SmsStatusOk | SmsStatusError;
 
 // ── Terminal status helpers ───────────────────────────────────────────────────
 
-/** Statuses that indicate successful delivery through any path */
+/** Statuses that indicate successful delivery */
 export const SMS_SUCCESS_STATUSES: SmsRequestStatus[] = [
     'sent_via_macrodroid',
-    'sent_via_solapi',
+    'sent', // legacy status — kept so old DB records terminate polling correctly
 ];
 
 /** All terminal statuses (success + failure) — polling should stop here */
@@ -85,7 +85,7 @@ export function isSmsTerminal(status: SmsRequestStatus): boolean {
  * const supabase = await createServerClient();
  * const result = await getSmsRequestStatus(supabase, request_id);
  * if (!result.ok) {
- *   console.error('[Fallback] Status check failed:', result.error);
+ *   console.error('[SMS] Status check failed:', result.error);
  * }
  */
 export async function getSmsRequestStatus(
@@ -95,7 +95,7 @@ export async function getSmsRequestStatus(
     const { data, error } = await supabase
         .from('sms_requests')
         .select(
-            'id, message, receivers, status, created_at, updated_at, sent_at, fallback_note, ' +
+            'id, message, receivers, status, created_at, updated_at, sent_at, ' +
             'dispatch_method, total_count, success_count, delivery_results, error_message, ' +
             'dispatched_at, completed_at',
         )

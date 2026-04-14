@@ -1,14 +1,8 @@
 /**
  * SMS Primary Route — Supabase Queue Insert
  *
- * Dispatch flow:
- *   1. PRIMARY: Writes pending record to Supabase sms_requests queue
- *      → MacroDroid (Galaxy phone) polls and sends for free
- *   2. FALLBACK: If MacroDroid has not processed within 5 minutes,
- *      → /api/sms/fallback is called by the PWA client to send via Solapi/CoolSMS (paid)
- *
- * Solapi/CoolSMS fallback code lives in: /api/sms/fallback/route.ts
- * Retained as fallback to ensure reliability when Galaxy phone is unavailable.
+ * Writes a pending record to the Supabase sms_requests queue.
+ * MacroDroid (Galaxy phone) polls and processes the record via Android SmsManager.
  */
 
 import { NextResponse } from 'next/server';
