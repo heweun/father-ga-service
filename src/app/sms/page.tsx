@@ -32,6 +32,8 @@ export default function SmsPage() {
     const PREFIX = '[곤지암중 25기 동창회 소식]\n';
     const [message, setMessage] = useState(PREFIX);
     const [contacts, setContacts] = useState<ExtractedContact[]>([]);
+    const [defaultGroupCount, setDefaultGroupCount] = useState(0);
+    const [isLoadingDefault, setIsLoadingDefault] = useState(false);
     const [rawText, setRawText] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [sendResult, setSendResult] = useState<SendResult | null>(null);
@@ -140,20 +142,23 @@ export default function SmsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [smsStatus.status, smsStatus.lastPolledAt, activeRequestId, isSending]);
 
-    useEffect(() => {
-        const loadDefaultContacts = async () => {
-            const supabase = createClient();
-            const { data, error } = await supabase
-                .from('contacts')
-                .select('name, phone')
-                .eq('group_name', '곤25');
-            if (error) { console.error('[contacts] error:', error); return; }
-            if (data && data.length > 0) {
-                setContacts(data.map(c => ({ name: c.name, phone: c.phone, originalText: '' })));
-            }
-        };
-        loadDefaultContacts();
-    }, []);
+    const loadDefaultContacts = async () => {
+        setIsLoadingDefault(true);
+        const supabase = createClient();
+        const { data, error } = await supabase
+            .from('contacts')
+            .select('name, phone')
+            .eq('group_name', '곤25');
+        setIsLoadingDefault(false);
+        if (error) { console.error('[contacts] error:', error); return; }
+        if (data && data.length > 0) {
+            setContacts(data.map(c => ({ name: c.name, phone: c.phone, originalText: '' })));
+            setDefaultGroupCount(data.length);
+        }
+    };
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => { loadDefaultContacts(); }, []);
 
     // 1. Contact Picker (Android)
     const handleContactPicker = async () => {
@@ -177,7 +182,14 @@ export default function SmsPage() {
         }
     };
 
-    // 2. Smart Paste Logic
+    // 2. Clear all contacts from memory (does not touch DB)
+    const handleClearAll = () => {
+        if (contacts.length === 0) return;
+        if (!window.confirm(`받는 사람 ${contacts.length}명을 모두 지울까요?`)) return;
+        setContacts([]);
+    };
+
+    // 3. Smart Paste Logic
     const handlePasteProcess = () => {
         if (!rawText) return;
         const extracted = extractContacts(rawText);
@@ -278,6 +290,25 @@ export default function SmsPage() {
                     <section className="space-y-4 pt-4 border-t-2 border-gray-200">
                         <h2 className="text-xl font-bold">2. 받는 사람 ({contacts.length}명)</h2>
 
+                        {/* Group toolbar: reload default list or clear all */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <BigButton
+                                variant="outline"
+                                onClick={loadDefaultContacts}
+                                disabled={isLoadingDefault}
+                            >
+                                {isLoadingDefault ? '불러오는 중...' : `곤25 (${defaultGroupCount}명) 불러오기`}
+                            </BigButton>
+                            <BigButton
+                                variant="secondary"
+                                onClick={handleClearAll}
+                                disabled={contacts.length === 0}
+                                className="border-red-200 text-red-600 hover:bg-red-50"
+                            >
+                                모두 지우기
+                            </BigButton>
+                        </div>
+
                         <div className="grid grid-cols-2 gap-3">
                             <BigButton
                                 variant="secondary"
@@ -312,7 +343,7 @@ export default function SmsPage() {
                             </BigButton>
                         </div>
 
-                        {contacts.length > 0 && (
+                        {contacts.length > 0 ? (
                             <ul className="max-h-40 overflow-y-auto border border-black rounded bg-white p-2 space-y-1">
                                 {contacts.map((c, i) => (
                                     <li key={i} className="flex justify-between items-center p-2 hover:bg-gray-100 border-b last:border-0 text-lg">
@@ -327,6 +358,14 @@ export default function SmsPage() {
                                     </li>
                                 ))}
                             </ul>
+                        ) : (
+                            <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center text-gray-500 space-y-2">
+                                <p className="text-lg font-semibold">받는 사람이 없습니다</p>
+                                <p className="text-base leading-relaxed">
+                                    위에서 곤25 명단을 불러오거나<br />
+                                    연락처 추가 / 붙여넣기로 번호를 입력하세요
+                                </p>
+                            </div>
                         )}
                     </section>
 
