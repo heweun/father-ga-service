@@ -139,7 +139,7 @@ export default function SmsPage() {
         setIsSending(false);
         setStep('done');
         setActiveRequestId(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [smsStatus.status, smsStatus.lastPolledAt, activeRequestId, isSending]);
 
     const loadDefaultContacts = async () => {
@@ -263,8 +263,8 @@ export default function SmsPage() {
         processingIsActive
             ? { bg: 'bg-green-50', text: 'text-green-700', msg: '📱 갤럭시 폰에서 발송 중입니다' }
             : elapsedSeconds >= 30
-            ? { bg: 'bg-gray-100', text: 'text-gray-500', msg: '⏳ 갤럭시 폰으로 연결 중입니다...' }
-            : null;
+                ? { bg: 'bg-gray-100', text: 'text-gray-500', msg: '⏳ 갤럭시 폰으로 연결 중입니다...' }
+                : null;
 
     return (
         <MobileLayout title="문자 보내기" showBack>
@@ -291,11 +291,12 @@ export default function SmsPage() {
                         <h2 className="text-xl font-bold">2. 받는 사람 ({contacts.length}명)</h2>
 
                         {/* Group toolbar: reload default list or clear all */}
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="flex flex-col gap-2">
                             <BigButton
                                 variant="outline"
                                 onClick={loadDefaultContacts}
                                 disabled={isLoadingDefault}
+                                className="h-auto py-3 text-lg"
                             >
                                 {isLoadingDefault ? '불러오는 중...' : `곤25 (${defaultGroupCount}명) 불러오기`}
                             </BigButton>
@@ -303,7 +304,7 @@ export default function SmsPage() {
                                 variant="secondary"
                                 onClick={handleClearAll}
                                 disabled={contacts.length === 0}
-                                className="border-red-200 text-red-600 hover:bg-red-50"
+                                className="h-auto py-3 text-lg border-red-200 text-red-600 hover:bg-red-50"
                             >
                                 모두 지우기
                             </BigButton>
