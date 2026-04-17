@@ -1,7 +1,7 @@
 
 import Link from 'next/link';
 import BigButton from '@/components/BigButton';
-import { MessageSquare, Wallet, UserCircle } from 'lucide-react';
+import { MessageSquare, Wallet, UserCircle, Users } from 'lucide-react';
 
 export default function Home() {
   return (
@@ -36,6 +36,16 @@ export default function Home() {
             <div>
               <h2 className="text-3xl font-bold mb-1">회비 관리</h2>
               <p className="text-[var(--text-sub)] text-lg">회비, 지출, 장부 정리</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link href="/contacts" className="block transform transition-transform active:scale-95">
+          <div className="bg-white text-[var(--text-main)] border-2 border-slate-200 rounded-3xl p-8 shadow-sm flex flex-col items-center gap-4 text-center">
+            <Users size={64} strokeWidth={1.5} className="text-green-600" />
+            <div>
+              <h2 className="text-3xl font-bold mb-1">회원 관리</h2>
+              <p className="text-[var(--text-sub)] text-lg">회원 추가, 수정, 삭제</p>
             </div>
           </div>
         </Link>
