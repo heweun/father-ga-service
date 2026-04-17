@@ -5,7 +5,7 @@ import MobileLayout from '@/components/MobileLayout';
 import BigButton from '@/components/BigButton';
 import ContactModal, { Contact } from '@/components/ContactModal';
 import { createClient } from '@/lib/supabase/client';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Pencil } from 'lucide-react';
 
 /** 01012345678 → 010-1234-5678 */
 function formatPhone(phone: string): string {
@@ -20,7 +20,6 @@ export default function ContactsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState('');
     const [modalContact, setModalContact] = useState<Contact | null | undefined>(undefined);
-    // undefined: 모달 닫힘, null: 추가 모드, Contact: 수정 모드
 
     const loadContacts = useCallback(async () => {
         setIsLoading(true);
@@ -43,24 +42,34 @@ export default function ContactsPage() {
         <MobileLayout title="회원 관리" showBack>
             <div className="space-y-4">
 
-                <div className="flex items-center justify-between">
-                    <p className="text-xl font-bold text-gray-600">
-                        총 {contacts.length}명
+                {/* 상단 헤더: 인원 수 + 추가 버튼 */}
+                <div className="flex items-center justify-between gap-3">
+                    <p className="text-2xl font-bold text-gray-700">
+                        총 <span className="text-[var(--primary)]">{contacts.length}</span>명
                     </p>
                     <BigButton
                         onClick={() => setModalContact(null)}
-                        className="w-auto h-12 px-4 text-base"
+                        className="w-auto h-14 px-5 text-lg shrink-0"
                         fullWidth={false}
                     >
-                        <UserPlus size={20} className="mr-2" />
+                        <UserPlus size={22} className="mr-2" />
                         새 회원 추가
                     </BigButton>
                 </div>
 
-                {isLoading && (
-                    <p className="text-center text-xl text-gray-400 py-12">불러오는 중...</p>
+                {/* 안내 문구: 탭하면 수정 가능하다는 힌트 */}
+                {!isLoading && !loadError && contacts.length > 0 && (
+                    <p className="text-base text-gray-400 text-center">
+                        이름을 누르면 수정하거나 삭제할 수 있어요
+                    </p>
                 )}
 
+                {/* 로딩 */}
+                {isLoading && (
+                    <p className="text-center text-xl text-gray-400 py-16">불러오는 중...</p>
+                )}
+
+                {/* 에러 */}
                 {loadError && (
                     <div className="text-center py-8 space-y-4">
                         <p className="text-red-500 text-xl">{loadError}</p>
@@ -68,16 +77,27 @@ export default function ContactsPage() {
                     </div>
                 )}
 
+                {/* 회원 목록 */}
                 {!isLoading && !loadError && (
                     <ul className="space-y-2">
                         {contacts.map(c => (
                             <li key={c.id}>
                                 <button
-                                    className="w-full flex justify-between items-center px-4 py-4 bg-white border-2 border-slate-200 rounded-2xl hover:bg-slate-50 active:scale-95 transition-all"
+                                    className="w-full flex items-center gap-3 px-4 py-5 bg-white border-2 border-slate-200 rounded-2xl active:scale-95 active:bg-slate-50 transition-all"
                                     onClick={() => setModalContact(c)}
                                 >
-                                    <span className="text-xl font-bold">{c.name}</span>
-                                    <span className="text-lg text-gray-500">{formatPhone(c.phone)}</span>
+                                    {/* 이름: 넘치면 말줄임 */}
+                                    <span className="text-xl font-bold flex-1 text-left truncate">
+                                        {c.name}
+                                    </span>
+
+                                    {/* 전화번호: 항상 고정폭, 숫자 정렬 */}
+                                    <span className="text-lg text-gray-500 shrink-0 tabular-nums font-medium">
+                                        {formatPhone(c.phone)}
+                                    </span>
+
+                                    {/* 수정 아이콘 힌트 */}
+                                    <Pencil size={18} className="text-gray-300 shrink-0" />
                                 </button>
                             </li>
                         ))}
@@ -85,6 +105,7 @@ export default function ContactsPage() {
                 )}
             </div>
 
+            {/* 추가/수정/삭제 모달 */}
             {modalContact !== undefined && (
                 <ContactModal
                     contact={modalContact}
