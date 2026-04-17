@@ -7,6 +7,14 @@ import ContactModal, { Contact } from '@/components/ContactModal';
 import { createClient } from '@/lib/supabase/client';
 import { UserPlus } from 'lucide-react';
 
+/** 01012345678 → 010-1234-5678 */
+function formatPhone(phone: string): string {
+    const d = phone.replace(/[^0-9]/g, '');
+    if (d.length === 11) return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
+    if (d.length === 10) return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+    return phone;
+}
+
 export default function ContactsPage() {
     const [contacts, setContacts] = useState<Contact[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -69,7 +77,7 @@ export default function ContactsPage() {
                                     onClick={() => setModalContact(c)}
                                 >
                                     <span className="text-xl font-bold">{c.name}</span>
-                                    <span className="text-lg text-gray-500">{c.phone}</span>
+                                    <span className="text-lg text-gray-500">{formatPhone(c.phone)}</span>
                                 </button>
                             </li>
                         ))}
