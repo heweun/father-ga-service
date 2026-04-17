@@ -1,4 +1,3 @@
-
 import { InputHTMLAttributes, useId } from 'react';
 import { cn } from '@/lib/cn';
 
@@ -20,22 +19,22 @@ export default function BigInput({
     return (
         <div className="space-y-2 w-full">
             {label && (
-                <label htmlFor={inputId} className="block text-xl font-bold text-[var(--text-main)] mb-1">
+                <label htmlFor={inputId} className="block text-lg font-bold text-[var(--text-main)]">
                     {label}
                 </label>
             )}
             <input
                 id={inputId}
                 className={cn(
-                    "w-full h-16 px-4 rounded-xl border-2 border-slate-300 bg-white text-2xl placeholder:text-slate-400 focus:border-[var(--primary)] focus:ring-4 focus:ring-blue-100 outline-none transition-all",
+                    "w-full h-16 px-4 rounded-2xl border-2 border-[var(--border)] bg-white text-2xl",
+                    "placeholder:text-slate-300",
+                    "focus:border-[var(--primary)] focus:ring-4 focus:ring-blue-100 outline-none transition-all",
                     className
                 )}
                 {...props}
             />
             {helperText && (
-                <p className="text-base text-[var(--text-sub)] mt-1 ml-1">
-                    {helperText}
-                </p>
+                <p className="text-base text-[var(--text-sub)] mt-1 ml-1">{helperText}</p>
             )}
         </div>
     );

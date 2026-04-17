@@ -1,4 +1,3 @@
-
 import { ButtonHTMLAttributes } from 'react';
 import { cn } from '@/lib/cn';
 
@@ -19,21 +18,25 @@ export default function BigButton({
         <button
             type={type}
             className={cn(
-                // Base Styles: Large touch target, rounded, font-medium, flex center
-                'h-16 px-6 py-4 rounded-2xl text-xl font-bold flex items-center justify-center transition-all duration-200 active:scale-95 shadow-md',
-                'disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
+                'h-16 px-6 py-4 rounded-2xl text-xl font-bold flex items-center justify-center transition-all duration-150 active:scale-95',
+                'disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100',
+                'shadow-sm',
                 {
-                    // Primary: Brand Blue with White text
-                    'bg-[var(--primary)] text-white hover:bg-blue-700': variant === 'primary',
+                    // Primary: 깊은 네이비 + 그림자 강조
+                    'bg-[var(--primary)] text-white hover:brightness-110 shadow-[0_4px_0_0_#0f2456]':
+                        variant === 'primary',
 
-                    // Secondary: White surface with border, dark text
-                    'bg-white text-[var(--text-main)] border-2 border-slate-200 hover:bg-slate-50': variant === 'secondary',
+                    // Secondary: 따뜻한 흰색 카드
+                    'bg-white text-[var(--text-main)] border-2 border-[var(--border)] hover:bg-[#FFF8EE]':
+                        variant === 'secondary',
 
-                    // Danger: Soft Red
-                    'bg-red-500 text-white hover:bg-red-600': variant === 'danger',
+                    // Danger: 선명한 레드
+                    'bg-red-500 text-white hover:bg-red-600 shadow-[0_4px_0_0_#b91c1c]':
+                        variant === 'danger',
 
-                    // Outline (Ghost-like)
-                    'bg-transparent border-2 border-[var(--primary)] text-[var(--primary)]': variant === 'outline',
+                    // Outline: 테두리만
+                    'bg-transparent border-2 border-[var(--primary)] text-[var(--primary)] hover:bg-blue-50':
+                        variant === 'outline',
 
                     'w-full': fullWidth,
                 },

@@ -1,37 +1,38 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg-app: #F8FAFC;
-  --color-primary: #2563EB;
+  --color-bg-app: #FFFBF5;
+  --color-primary: #1B3F8B;
   --color-primary-fg: #FFFFFF;
-  --color-accent: #F59E0B;
-  --color-accent-fg: #000000;
-  --color-text-main: #1E293B;
-  --color-text-sub: #475569;
+  --color-accent: #E8920A;
+  --color-accent-fg: #FFFFFF;
+  --color-text-main: #1A1A2E;
+  --color-text-sub: #5A6070;
+  --color-surface: #FFFFFF;
+  --color-border: #E2DDD5;
 }
 
-/* 
-  V4 Note: We can Map CSS Variables to Theme like above, 
-  OR just use standard CSS variables and utility classes.
-*/
-
 :root {
-  /* Fallback / Legacy Var Support */
-  --bg-app: #F8FAFC;
-  --primary: #2563EB;
+  --bg-app: #FFFBF5;
+  --primary: #1B3F8B;
   --primary-fg: #FFFFFF;
-  --accent: #F59E0B;
-  --accent-fg: #000000;
-  --text-main: #1E293B;
-  --text-sub: #475569;
+  --accent: #E8920A;
+  --accent-fg: #FFFFFF;
+  --text-main: #1A1A2E;
+  --text-sub: #5A6070;
+  --surface: #FFFFFF;
+  --border: #E2DDD5;
+  --color-bg: #FFFBF5;
+  --color-primary: #1B3F8B;
 }
 
 body {
   background-color: var(--bg-app);
   color: var(--text-main);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-noto-kr), "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   font-size: 18px;
-  line-height: 1.6;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
 }
 
 input,
@@ -39,10 +40,3 @@ textarea,
 button {
   font-family: inherit;
 }
-
-/* 
-  Removed .card and .btn-press classes to avoid @apply issues in V4.
-  Please use utility classes directly in components:
-  .card -> "bg-white rounded-2xl shadow-sm border border-slate-200 p-6"
-  .btn-press -> "active:scale-95 transition-transform duration-100"
-*/
