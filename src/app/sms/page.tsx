@@ -148,7 +148,8 @@ export default function SmsPage() {
         const { data, error } = await supabase
             .from('contacts')
             .select('name, phone')
-            .eq('group_name', '곤25');
+            .eq('group_name', '곤25')
+            .order('name', { ascending: true });
         setIsLoadingDefault(false);
         if (error) { console.error('[contacts] error:', error); return; }
         if (data && data.length > 0) {

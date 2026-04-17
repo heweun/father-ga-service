@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { getErrorMessage } from '@/lib/errors';
 
+/** 010-1234-5678 형식으로 통일 */
+function formatPhone(digits: string): string {
+    if (digits.length === 11) return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+    if (digits.length === 10) return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+    return digits;
+}
+
 export async function PUT(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -18,10 +25,11 @@ export async function PUT(
             return NextResponse.json({ success: false, error: '올바른 전화번호를 입력해주세요.' }, { status: 400 });
         }
 
+        const digits = phone.replace(/[^0-9]/g, '');
         const supabase = createServiceClient();
         const { error } = await supabase
             .from('contacts')
-            .update({ name: name.trim(), phone: phone.trim() })
+            .update({ name: name.trim(), phone: formatPhone(digits) })
             .eq('id', id);
 
         if (error) {
