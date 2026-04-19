@@ -5,7 +5,7 @@ import MobileLayout from '@/components/MobileLayout';
 import BigButton from '@/components/BigButton';
 import ContactModal, { Contact } from '@/components/ContactModal';
 import { createClient } from '@/lib/supabase/client';
-import { UserPlus, Pencil } from 'lucide-react';
+import { UserPlus, Pencil, Search, X } from 'lucide-react';
 
 /** 01012345678 → 010-1234-5678 */
 function formatPhone(phone: string): string {
@@ -20,6 +20,7 @@ export default function ContactsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState('');
     const [modalContact, setModalContact] = useState<Contact | null | undefined>(undefined);
+    const [search, setSearch] = useState('');
 
     const loadContacts = useCallback(async () => {
         setIsLoading(true);
@@ -37,6 +38,10 @@ export default function ContactsPage() {
     }, []);
 
     useEffect(() => { loadContacts(); }, [loadContacts]);
+
+    const filtered = search.trim()
+        ? contacts.filter(c => c.name.includes(search.trim()))
+        : contacts;
 
     return (
         <MobileLayout title="회원 관리" showBack>
@@ -56,6 +61,28 @@ export default function ContactsPage() {
                         새 회원 추가
                     </BigButton>
                 </div>
+
+                {/* 검색창 */}
+                {!isLoading && !loadError && contacts.length > 0 && (
+                    <div className="relative">
+                        <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            placeholder="이름으로 검색"
+                            className="w-full pl-11 pr-10 py-4 text-xl border-2 border-slate-200 rounded-2xl focus:outline-none focus:border-[var(--primary)] bg-white"
+                        />
+                        {search && (
+                            <button
+                                onClick={() => setSearch('')}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
+                            >
+                                <X size={20} />
+                            </button>
+                        )}
+                    </div>
+                )}
 
                 {/* 안내 문구: 탭하면 수정 가능하다는 힌트 */}
                 {!isLoading && !loadError && contacts.length > 0 && (
@@ -80,7 +107,12 @@ export default function ContactsPage() {
                 {/* 회원 목록 */}
                 {!isLoading && !loadError && (
                     <ul className="space-y-2">
-                        {contacts.map(c => (
+                        {filtered.length === 0 && search && (
+                            <li className="text-center text-xl text-gray-400 py-12">
+                                &quot;{search}&quot; 검색 결과가 없어요
+                            </li>
+                        )}
+                        {filtered.map(c => (
                             <li key={c.id}>
                                 <button
                                     className="w-full flex items-center gap-3 px-4 py-5 bg-white border-2 border-slate-200 rounded-2xl active:scale-95 active:bg-slate-50 transition-all"
